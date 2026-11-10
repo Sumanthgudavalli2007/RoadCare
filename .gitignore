@@ -1,0 +1,10 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+instance/
+uploads/
+
+.idea/
+.DS_Store

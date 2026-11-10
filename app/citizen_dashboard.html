@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Reports | RoadCare</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#1e293b}
+header{background:#fff;padding:18px 6%;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid #e2e8f0}
+.logo{font-size:24px;font-weight:700;color:#245eea;text-decoration:none}
+nav{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+nav a{color:#245eea;text-decoration:none;font-weight:600;font-size:14px}
+button,.primary{border:0;border-radius:8px;background:#245eea;color:white;padding:11px 15px;font-weight:600;text-decoration:none;cursor:pointer}
+.logout{background:#eff6ff;color:#245eea}
+main{width:min(1100px,92%);margin:32px auto 55px}
+.welcome{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+h1{margin:0 0 7px;font-size:28px}
+.muted{color:#64748b;line-height:1.5;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0 28px}
+.stat,.report,.empty{background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:18px}
+.stat strong{display:block;font-size:27px;margin-bottom:5px}
+.stat span{color:#64748b;font-size:13px}
+.section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:25px 0 14px}
+.section-title h2{margin:0;font-size:21px}
+.reports{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.report-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.report-id{font-weight:700;color:#245eea;overflow-wrap:anywhere}
+.status{padding:6px 10px;border-radius:20px;font-size:12px;font-weight:700;background:#fff7ed;color:#9a3412}
+.status.resolved{background:#eaf7ed;color:#166534}
+.status.progress{background:#eff6ff;color:#1d4ed8}
+.report img{display:block;width:100%;height:190px;object-fit:cover;border-radius:9px;margin:14px 0}
+.details{font-size:14px;line-height:1.8;color:#475569;overflow-wrap:anywhere}
+.details strong{color:#1e293b}
+.empty{text-align:center;padding:42px 20px}
+.empty .symbol{font-size:38px;margin-bottom:10px}
+.empty h3{margin:8px 0}
+.flash{padding:11px 14px;border-radius:8px;background:#eaf7ed;color:#166534;margin-bottom:16px}
+@media(max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.reports{grid-template-columns:1fr}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="{{ url_for('main.citizen_dashboard') }}">RoadCare</a>
+  <nav>
+    <span class="muted">Hi, {{ current_user["username"] }}</span>
+    <a href="{{ url_for('main.new_report') }}">Submit Report</a>
+    <a href="{{ url_for('main.track') }}">Track Report</a>
+    <form method="POST" action="{{ url_for('main.logout') }}" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="logout" type="submit">Logout</button>
+    </form>
+  </nav>
+</header>
+<main>
+  {% with messages = get_flashed_messages() %}
+    {% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}
+  {% endwith %}
+  <section class="welcome">
+    <div>
+      <h1>Welcome back, {{ current_user["username"] }}!</h1>
+      <p class="muted">View and track the road damage reports submitted from your account.</p>
+    </div>
+    <a class="primary" href="{{ url_for('main.new_report') }}">＋ Submit New Report</a>
+  </section>
+  <section class="stats" aria-label="Report summary">
+    <div class="stat"><strong>{{ stats.total }}</strong><span>Total Reports</span></div>
+    <div class="stat"><strong>{{ stats.reported }}</strong><span>Reported</span></div>
+    <div class="stat"><strong>{{ stats.progress }}</strong><span>In Progress</span></div>
+    <div class="stat"><strong>{{ stats.resolved }}</strong><span>Resolved</span></div>
+  </section>
+  <section>
+    <div class="section-title"><h2>My Previous Reports</h2><span class="muted">{{ stats.total }} report(s)</span></div>
+    {% if reports %}
+      <div class="reports">
+      {% for report in reports %}
+        <article class="report">
+          <div class="report-top">
+            <span class="report-id">{{ report["report_id"] }}</span>
+            <span class="status {% if report['status'] == 'Resolved' %}resolved{% elif report['status'] == 'In Progress' %}progress{% endif %}">{{ report["status"] }}</span>
+          </div>
+          <img src="{{ url_for('main.uploaded_image', filename=report['image_filename']) }}" alt="Road damage photo for {{ report['report_id'] }}">
+          <div class="details">
+            <div><strong>Severity:</strong> {{ report["severity"] }}</div>
+            <div><strong>Location:</strong> {{ "%.6f"|format(report["latitude"]) }}, {{ "%.6f"|format(report["longitude"]) }}</div>
+            <div><strong>Submitted:</strong> {{ report["created_at"] }}</div>
+            <div><strong>Notes:</strong> {{ report["notes"] or "No additional notes" }}</div>
+          </div>
+          <p style="margin:14px 0 0"><a href="{{ url_for('main.track') }}" style="color:#245eea;font-weight:600;text-decoration:none">Open report tracking →</a></p>
+        </article>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <div class="symbol">🛣️</div>
+        <h3>You haven't submitted any reports yet.</h3>
+        <p class="muted">When you submit a road damage report, it will appear here so you can check its status anytime.</p>
+        <p style="margin-top:22px"><a class="primary" href="{{ url_for('main.new_report') }}">Submit Your First Report</a></p>
+      </div>
+    {% endif %}
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoadCare | Report Road Damage</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1e293b;
+        }
+
+        header {
+            background: white;
+            padding: 18px 7%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo {
+            color: #245eea;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        header a {
+            text-decoration: none;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 45px 20px 25px;
+        }
+
+        .hero h1 {
+            margin-bottom: 12px;
+            font-size: clamp(28px, 5vw, 42px);
+        }
+
+        .hero h1 span {
+            color: #245eea;
+        }
+
+        .hero p {
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        .container {
+            width: min(600px, 92%);
+            margin: 0 auto 45px;
+            background: white;
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 8px 35px #1e293b0c;
+            border: 1px solid #e2e8f0;
+        }
+
+        .container h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        label {
+            display: block;
+            margin: 20px 0 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font: inherit;
+            background: white;
+        }
+
+        input:focus, textarea:focus {
+            outline: 2px solid #bfdbfe;
+            border-color: #245eea;
+        }
+
+        .location-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .location-button {
+            width: 100%;
+            margin-top: 12px;
+            background: #eff6ff;
+            color: #245eea;
+            border: 1px solid #bfdbfe;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .submit-button {
+            width: 100%;
+            margin-top: 24px;
+            padding: 14px;
+            background: #245eea;
+            color: white;
+            border: 0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submit-button:hover {
+            background: #1748bd;
+        }
+
+        .notice {
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            .location-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 16px 5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">RoadCare</div>
+        <nav style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:13px;color:#64748b">Hi, {{ current_user["username"] }}</span>
+            <a href="{{ url_for('main.citizen_dashboard') }}">My Reports</a>
+            <a href="{{ url_for('main.track') }}">Track Report</a>
+            <form method="POST" action="{{ url_for('main.logout') }}" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" style="border:0;background:#eff6ff;color:#245eea;padding:9px 12px;border-radius:7px;cursor:pointer">Logout</button>
+            </form>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Report Road Damage.<br><span>Make Roads Safer.</span></h1>
+        <p>Help your community by reporting potholes and damaged roads.<br>
+        Your report can help authorities identify areas needing attention.</p>
+    </section>
+
+    <main class="container">
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}<p style="background:#eaf7ed;padding:10px;border-radius:8px">{{ message }}</p>{% endfor %}
+        {% endwith %}
+        <h2>🛣️ Report Road Damage</h2>
+        <p class="subtitle">Upload a road photo and provide its location to create a report.</p>
+
+        <form action="{{ url_for('main.submit_report') }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="photo">Photo of the damage *</label>
+            <input id="photo" type="file" name="photo"
+                   accept="image/jpeg,image/png,image/webp" required>
+
+            <label for="latitude">Location coordinates *</label>
+            <div class="location-grid">
+                <input id="latitude" type="number" name="latitude"
+                       step="any" min="-90" max="90"
+                       placeholder="Latitude" required>
+                <input id="longitude" type="number" name="longitude"
+                       step="any" min="-180" max="180"
+                       placeholder="Longitude" required>
+            </div>
+
+            <button class="location-button" type="button" id="locationBtn">
+                📍 Use My Current Location
+            </button>
+            <p id="locationMessage" class="subtitle" aria-live="polite"></p>
+
+            <label for="notes">Additional notes (optional)</label>
+            <textarea id="notes" name="notes" rows="3"
+                      maxlength="500"
+                      placeholder="Describe the road damage or nearby landmark"></textarea>
+
+            <button class="submit-button" type="submit">
+                Submit Road Report →
+            </button>
+        </form>
+
+        <div class="notice">
+            🔒 Your report will be processed by the RoadCare application.
+            Please submit only genuine road damage photos. Location access
+            requires your browser's permission.
+        </div>
+    </main>
+
+    <footer>RoadCare · Community Road Safety Reporting</footer>
+
+    <script>
+        const locationButton = document.getElementById("locationBtn");
+        const locationMessage = document.getElementById("locationMessage");
+
+        locationButton.addEventListener("click", () => {
+            if (!navigator.geolocation) {
+                locationMessage.textContent =
+                    "Geolocation is not supported by this browser.";
+                return;
+            }
+
+            locationMessage.textContent = "Getting your location...";
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.getElementById("latitude").value =
+                        position.coords.latitude.toFixed(6);
+
+                    document.getElementById("longitude").value =
+                        position.coords.longitude.toFixed(6);
+
+                    locationMessage.textContent =
+                        "Location captured successfully.";
+                },
+                (error) => {
+                    locationMessage.textContent =
+                        "Unable to get location. Allow permission or enter coordinates manually.";
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        });
+    </script>
+</body>
+</html>

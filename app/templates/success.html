@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Report Submitted | RoadCare</title>
+    <style>
+        body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;
+        color:#1e293b;display:grid;place-items:center;min-height:100vh}
+        main{background:white;padding:35px;border-radius:16px;
+        width:min(440px,85%);text-align:center;box-shadow:0 8px 30px #0001}
+        .check{font-size:55px;color:#16a34a}
+        .id{background:#eff6ff;padding:14px;border-radius:8px;
+        color:#245eea;font-weight:bold;overflow-wrap:anywhere}
+        a{display:block;margin-top:15px;background:#245eea;color:white;
+        padding:13px;border-radius:8px;text-decoration:none}
+        .secondary{background:#eaf0ff;color:#245eea}
+    </style>
+</head>
+<body>
+<main>
+    <div class="check">✓</div>
+    <h1>Report Submitted!</h1>
+    <p>Your road damage report has been saved successfully.</p>
+    <p>Your report ID:</p>
+    <div class="id">{{ report_id }}</div>
+    <p>Estimated severity: <strong>{{ severity }}</strong></p>
+    <p>Initial priority score: <strong>{{ priority_score }}/100</strong></p>
+    {% if is_duplicate %}
+      <div style="margin:16px 0;padding:12px;border-radius:8px;background:#fff7ed;color:#9a3412">
+        <strong>Possible duplicate detected.</strong><br>
+        This report is within about {{ duplicate_distance }} metres of
+        unresolved report <strong>{{ duplicate_of }}</strong>.
+        It has still been saved for review.
+      </div>
+    {% else %}
+      <p>No nearby unresolved report was flagged within 50 metres.</p>
+    {% endif %}
+    <p>Save your report ID to track progress later.</p>
+    <a href="{{ url_for('main.citizen_dashboard') }}">View My Reports</a>
+    <a href="{{ url_for('main.track') }}">Track My Report</a>
+    <a class="secondary" href="{{ url_for('main.home') }}">Submit Another Report</a>
+</main>
+</body>
+</html>

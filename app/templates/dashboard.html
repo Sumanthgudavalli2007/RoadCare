@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Authority Dashboard | RoadCare</title>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1e293b;
+        }
+
+        header {
+            background: white;
+            padding: 18px 4%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo { color: #245eea; font-size: 23px; font-weight: bold; }
+        a { color: #245eea; text-decoration: none; }
+
+        main { max-width: 1400px; margin: auto; padding: 25px 3%; }
+
+        .heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .muted { color: #64748b; font-size: 13px; }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(120px, 1fr));
+            gap: 14px;
+            margin: 25px 0;
+        }
+
+        .card, .map-panel, .table-panel {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 22px;
+        }
+
+        .card strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 12px;
+        }
+
+        #map { height: 390px; border-radius: 8px; }
+
+        .table-wrap { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th { background: #f8fafc; }
+
+        td img {
+            width: 80px;
+            height: 55px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        select, button {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #245eea;
+            color: white;
+            border: 0;
+            cursor: pointer;
+        }
+
+        .flash {
+            background: #eaf7ed;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .empty { text-align: center; color: #64748b; padding: 24px; }
+
+        @media (max-width: 850px) {
+            .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 480px) {
+            main { padding: 15px 3%; }
+            .card { padding: 13px; }
+            .card strong { font-size: 23px; }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <div class="logo">RoadCare</div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span class="muted">Authority: {{ current_user["username"] }}</span>
+        <form method="POST" action="{{ url_for('main.logout') }}" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+</header>
+
+<main>
+    <div class="heading">
+        <div>
+            <h1>Authority Dashboard</h1>
+            <p class="muted">Monitor and manage community road damage reports.</p>
+        </div>
+        <a href="/track">Track a Report →</a>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% for message in messages %}
+            <div class="flash">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <section class="cards">
+        <div class="card">Total Reports
+            <strong>{{ stats.total }}</strong>
+        </div>
+        <div class="card">High Severity
+            <strong>{{ stats.high }}</strong>
+        </div>
+        <div class="card">Reported
+            <strong>{{ stats.reported }}</strong>
+        </div>
+        <div class="card">In Progress
+            <strong>{{ stats.progress }}</strong>
+        </div>
+        <div class="card">Resolved
+            <strong>{{ stats.resolved }}</strong>
+        </div>
+        <div class="card">Possible Duplicates
+            <strong>{{ stats.duplicates }}</strong>
+        </div>
+    </section>
+
+    <section class="map-panel">
+        <h2>Reported Damage Locations</h2>
+        <p class="muted">Select a marker to view its report information.</p>
+        <div id="map"></div>
+        <p id="map-message" class="muted" aria-live="polite"></p>
+    </section>
+
+    <section class="table-panel">
+        <h2>Road Damage Reports</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Photo</th>
+                        <th>Report ID</th>
+                        <th>Severity</th>
+                        <th>Priority</th>
+                        <th>Duplicate Check</th>
+                        <th>Location</th>
+                        <th>Notes</th>
+                        <th>Reported At</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for r in reports %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('main.uploaded_image', filename=r['image_filename']) }}"
+                               target="_blank" rel="noopener">
+                                <img src="{{ url_for('main.uploaded_image', filename=r['image_filename']) }}"
+                                     alt="Reported road damage">
+                            </a>
+                        </td>
+                        <td>{{ r["report_id"] }}</td>
+                        <td>{{ r["severity"] }}</td>
+                        <td>
+                            <strong>{{ r["priority_score"] }}/100</strong>
+                            <div class="muted">{{ r["nearby_unresolved"] }} nearby unresolved</div>
+                        </td>
+                        <td>
+                            {% if r["is_duplicate"] %}
+                                <strong>Possible duplicate</strong>
+                                <div class="muted">Similar to {{ r["duplicate_of"] }}</div>
+                            {% else %}
+                                No match flagged
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.5f"|format(r["latitude"]) }},
+                            {{ "%.5f"|format(r["longitude"]) }}</td>
+                        <td>{{ r["notes"] or "—" }}</td>
+                        <td>{{ r["created_at"] }}</td>
+                        <td>
+                            <form method="POST"
+                                  action="{{ url_for('main.update_status', report_id=r['report_id']) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="status" aria-label="Report status">
+                                    {% for s in ["Reported", "In Progress", "Resolved"] %}
+                                        <option value="{{ s }}"
+                                            {% if r["status"] == s %}selected{% endif %}>
+                                            {{ s }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="empty">No reports submitted yet.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<!-- Flask/Jinja creates the JSON. JavaScript reads the resulting data. -->
+<script id="roadcare-data" type="application/json">
+[
+{% for r in reports %}
+    {
+        "lat": {{ r["latitude"]|tojson }},
+        "lon": {{ r["longitude"]|tojson }},
+        "id": {{ r["report_id"]|tojson }},
+        "severity": {{ r["severity"]|tojson }},
+        "status": {{ r["status"]|tojson }},
+        "priority": {{ r["priority_score"]|tojson }},
+        "duplicate": {{ (true if r["is_duplicate"] else false)|tojson }}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const locations = JSON.parse(
+        document.getElementById("roadcare-data").textContent
+    );
+
+    const mapMessage = document.getElementById("map-message");
+
+    if (typeof L === "undefined") {
+        mapMessage.textContent =
+            "Map library unavailable. Check your internet connection.";
+    } else {
+        const map = L.map("map").setView([20.5937, 78.9629], 5);
+
+        
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+
+
+        if (locations.length > 0) {
+            const bounds = [];
+
+            locations.forEach(function (report) {
+                const point = [report.lat, report.lon];
+                bounds.push(point);
+
+                L.marker(point).addTo(map).bindPopup(
+                    "<b>" + report.id + "</b><br>" +
+                    "Severity: " + report.severity + "<br>" +
+                    "Priority: " + report.priority + "/100<br>" +
+                    "Status: " + report.status +
+                    (report.duplicate ? "<br><b>Possible duplicate</b>" : "")
+                );
+            });
+
+            map.fitBounds(bounds, { padding: [25, 25], maxZoom: 15 });
+        } else {
+            mapMessage.textContent =
+                "No reports yet. Map markers will appear after submissions.";
+        }
+    }
+</script>
+</body>
+</html>

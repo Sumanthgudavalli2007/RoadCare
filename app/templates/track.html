@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Track Report | RoadCare</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;
+        color:#1e293b}
+        header{padding:20px 7%;background:white}
+        header a{color:#245eea;text-decoration:none;font-weight:bold}
+        main{width:min(600px,92%);margin:45px auto;background:white;
+        padding:28px;border-radius:14px;border:1px solid #e2e8f0}
+        input,button{width:100%;padding:13px;margin-top:12px;
+        border-radius:8px;font-size:15px}
+        input{border:1px solid #cbd5e1}
+        button{background:#245eea;color:white;border:0;cursor:pointer}
+        .result{margin-top:24px;background:#f8fafc;padding:18px;
+        border-radius:10px;line-height:1.9;overflow-wrap:anywhere}
+        .notice{color:#b91c1c}
+    </style>
+</head>
+<body>
+<header style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><a href="/">RoadCare</a><form method="POST" action="{{ url_for('main.logout') }}" style="margin:0"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" style="width:auto;margin:0">Logout</button></form></header>
+<main>
+    <h1>Track Your Report</h1>
+    <p>Enter the report ID received after submitting a road damage report.</p>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="report_id">Report ID</label>
+        <input id="report_id" name="report_id"
+               placeholder="e.g. RC-20261016-123456-ABC123" required>
+        <button type="submit">Find My Report</button>
+    </form>
+
+    {% with messages = get_flashed_messages() %}
+      {% for message in messages %}
+        <p class="notice">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    {% if report %}
+    <section class="result">
+        <h2>Report Details</h2>
+        <strong>ID:</strong> {{ report["report_id"] }}<br>
+        <strong>Status:</strong> {{ report["status"] }}<br>
+        <strong>Severity:</strong> {{ report["severity"] }}<br>
+        <strong>Location:</strong>
+        {{ report["latitude"] }}, {{ report["longitude"] }}<br>
+        <strong>Submitted:</strong> {{ report["created_at"] }}<br>
+        <strong>Notes:</strong> {{ report["notes"] or "No notes" }}<br>
+        <img src="{{ url_for('main.uploaded_image', filename=report['image_filename']) }}"
+             alt="Reported road damage"
+             style="width:100%;max-width:450px;margin-top:15px;border-radius:8px">
+    </section>
+    {% endif %}
+
+    <p><a href="{{ url_for('main.citizen_dashboard') }}">← Back to My Reports</a> | <a href="/">Submit New Report</a></p>
+</main>
+</body>
+</html>
